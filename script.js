@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://echelon-4ulx.onrender.com";
 // backend FastAPI server address
 
 let token = "";
@@ -1136,7 +1136,7 @@ function formatImageAnalysis(imageAnalysis) {
 function connectWebSocket() {
     // connects frontend to backend websocket
 
-    socket = new WebSocket("ws://127.0.0.1:8000/ws");
+    socket = new WebSocket("wss://echelon-4ulx.onrender.com/ws");
     // creates websocket connection
 
     socket.onopen = () => {
