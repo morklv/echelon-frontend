@@ -3,117 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECHELON Dashboard</title>
-    <link rel = "stylesheet" href = "style.css">
-    <link rel = "stylesheet" href = "https://unpkg.com/leaflet/dist/leaflet.css">
+    <title>ECHELON</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet/dist/leaflet.css"
+    >
 </head>
+
 <body>
-    <header class = "top-bar">
-        <h1>ECHELON</h1>
-        <p>Urban Incident Intelligence Dashboard</p>
+
+    <header class="top-bar">
+
+        <div class="logo-block">
+            <h1>ECHELON</h1>
+
+            <p class="platform-subtitle">
+                OPERATIONAL INTELLIGENCE PLATFORM
+            </p>
+
+            <p class="platform-subtitle-secondary">
+                REAL-TIME INFRASTRUCTURE MONITORING
+            </p>
+        </div>
+
         <div id="role-indicator">
             ROLE: UNAUTHENTICATED
         </div>
+
     </header>
 
-    <section class="card auth-card" id="auth-panel">
-    <h2>Authentication</h2>
-    <input id="username" type="text" placeholder="Username">
-    <input id="email" type="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
+    <section id="auth-panel">
 
-    <button onclick="registerUser()">Register</button>
-    <button onclick="loginUser()">Log In</button>
+        <h2>Authentication</h2>
 
-    <p id="auth-status">Not logged in</p>
-</section>
+        <input
+            id="username"
+            type="text"
+            placeholder="Username"
+        >
 
-<main class="dashboard hidden-dashboard" id="main-dashboard">
+        <input
+            id="password"
+            type="password"
+            placeholder="Password"
+        >
 
-        <section class = "metrics-bar">
-            <div class = "metric-card">
-                <h3 id = "total-incidents">0</h3>
-                <p>Total Incidents</p>
-            </div>
-
-            <div class = "metric-card">
-                <h3 id = "high-severity-count">0</h3>
-                <p>High Severity</p>
-            </div>
-
-            <div class = "metric-card">
-                <h3 id = "open-incidents-count">0</h3>
-                <p>Open Incidents</p>
-            </div>
-
-            <div class = "metric-card">
-                <h3 id = "closed-incidents-count">0</h3>
-                <p>Closed Incidents</p>
-            </div>
-        </section>
-
-        <button class = "drawer-toggle" onclick = "toggleIncidentDrawer()">
-            + Create Incident
+        <button onclick="registerUser()">
+            Register
         </button>
 
-        <button class = "drawer-toggle incidents-toggle" onclick = "toggleIncidentsDrawer()">
-            Show Incidents
+        <button onclick="loginUser()">
+            Log In
         </button>
 
-        <section class = "card incident-drawer" id = "incident-drawer">
-            <button class = "drawer-close" onclick = "toggleIncidentDrawer()">×</button>
-            <h2>Create Incident</h2>
-            <input id = "incident-title" type = "text" placeholder = "Title">
-            <input id = "incident-category" type = "text" placeholder = "Category">
-            <input id = "incident-severity" type = "number" placeholder = "Severity">
-            <textarea id = "incident-description" placeholer = "Drescription"></textarea>
-            <input id = "latitude" type = "number" step = "any" placeholder = "Latitude">
-            <input id = "longitude" type = "number" step = "any" placeholder = "Longitude">
-            
-            <button onclick = "createIncident()">Create Incident</button>
+        <p id="auth-status">
+            Not logged in
+        </p>
 
+    </section>
+
+    <section class="system-status-panel">
+
+        <h3>SYSTEM STATUS</h3>
+
+        <div class="status-item">
+            <span>WebSocket Relay</span>
+            <span class="status-online">ACTIVE</span>
+        </div>
+
+        <div class="status-item">
+            <span>Infrastructure Nodes</span>
+            <span>ONLINE</span>
+        </div>
+
+        <div class="status-item">
+            <span>AI Vision Pipeline</span>
+            <span class="status-online">ONLINE</span>
+        </div>
+
+        <div class="status-item">
+            <span>Dependency Engine</span>
+            <span class="status-online">ACTIVE</span>
+        </div>
+
+    </section>
+
+    <main
+        class="dashboard hidden-dashboard"
+        id="main-dashboard"
+    >
+        <section class="metrics-bar" style="display: none;">
+            <div class="metric-card">
+                <h3 id="total-incidents">0</h3>
+            </div>
+
+            <div class="metric-card">
+                <h3 id="high-severity-count">0</h3>
+            </div>
+
+            <div class="metric-card">
+                <h3 id="open-incidents-count">0</h3>
+            </div>
+
+            <div class="metric-card">
+                <h3 id="closed-incidents-count">0</h3>
+            </div>
         </section>
 
-        <section class = "card wide map-card">
-            <div id = "map"></div>
+        <button
+            id="create-incident-toggle"
+            class="drawer-toggle"
+            onclick="toggleIncidentDrawer()"
+        >
+            + CREATE INCIDENT
+        </button>
+
+        <button
+            class="drawer-toggle incidents-toggle"
+            onclick="toggleIncidentsDrawer()"
+        >
+            SHOW INCIDENTS
+        </button>
+
+        <section class="map-card">
+            <div id="map"></div>
         </section>
 
+        <section
+            class="incident-drawer"
+            id="incident-drawer"
+        >
 
-        <section class = "card incidents-drawer" id = "incidents-drawer">
-            
-            <button class = "drawer-close" onclick = "toggleIncidentsDrawer()">
+            <button
+                class="drawer-close"
+                onclick="toggleIncidentDrawer()"
+            >
                 ×
             </button>
 
-            <h2>My Incidents</h2>
-            <div class = "filters">
-                <select id = "severity-filter">
-                    <option value = "">All Severities</option>
-                    <option value = "1">Severity 1</option>
-                    <option value = "2">Severity 2</option>
-                    <option value = "3">Severity 3</option>
-                    <option value = "4">Severity 4</option>
-                    <option value = "5">Severity 5</option>
-                </select>
+            <h2>Create Incident</h2>
 
-                <select id = "status-filter">
-                    <option value = "">All Statuses</option>
-                    <option value = "open">Open</option>
-                    <option value = "closed">Closed</option>
-                    <button onclick = "clearFilters()">Clear Filters</button>
+            <input
+                id="incident-title"
+                type="text"
+                placeholder="Title"
+            >
 
-                </select>
+            <input
+                id="incident-category"
+                type="text"
+                placeholder="Category"
+            >
 
-                <input id = "category-filter" type = "text" placeholder = "Filter by category">
+            <input
+                id="incident-severity"
+                type="number"
+                min="1"
+                max="5"
+                placeholder="Severity 1-5"
+            >
 
-                <button onclick = "loadIncidents()">Apply Filters</button>
-            </div>
+            <textarea
+                id="incident-description"
+                placeholder="Description"
+            ></textarea>
 
-            <button onclick = "loadIncidents()">Refresh Incidents</button>
-            <div id = "incident-list"></div>
+            <input
+                id="latitude"
+                type="number"
+                step="any"
+                placeholder="Latitude"
+            >
+
+            <input
+                id="longitude"
+                type="number"
+                step="any"
+                placeholder="Longitude"
+            >
+
+            <button onclick="createIncident()">
+                Create Incident
+            </button>
+
         </section>
 
-        <section class="card incident-edit-drawer" id="incident-edit-drawer">
+        <section
+            class="incidents-drawer"
+            id="incidents-drawer"
+        >
+
+            <button
+                class="drawer-close"
+                onclick="toggleIncidentsDrawer()"
+            >
+                ×
+            </button>
+
+            <h2>Incidents</h2>
+            <div class="filters" style="display: none;">
+                <select id="severity-filter">
+                    <option value="">All Severities</option>
+                </select>
+
+                <select id="status-filter">
+                    <option value="">All Statuses</option>
+                </select>
+
+                <input id="category-filter" type="text" value="">
+            </div>
+
+            <div id="incident-list"></div>
+
+        </section>
+
+        <section
+            class="incident-edit-drawer"
+            id="incident-edit-drawer"
+        >
 
             <button
                 class="drawer-close"
@@ -135,15 +244,37 @@
                 placeholder="Incident Title"
             >
 
-            <textarea
-                id="edit-incident-description"
-                placeholder="Incident Description"
-            ></textarea>
-
             <input
                 id="edit-incident-category"
                 type="text"
                 placeholder="Category"
+            >
+
+            <input
+                id="edit-incident-severity"
+                type="number"
+                min="1"
+                max="5"
+                placeholder="Severity 1-5"
+            >
+
+            <textarea
+                id="edit-incident-description"
+                placeholder="Description"
+            ></textarea>
+
+            <input
+                id="edit-incident-latitude"
+                type="number"
+                step="any"
+                placeholder="Latitude"
+            >
+
+            <input
+                id="edit-incident-longitude"
+                type="number"
+                step="any"
+                placeholder="Longitude"
             >
 
             <select id="edit-incident-status">
@@ -151,48 +282,40 @@
                 <option value="verified">Verified</option>
                 <option value="escalated">Escalated</option>
                 <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
             </select>
-
-            <select id="edit-incident-severity">
-                <option value="1">Severity 1</option>
-                <option value="2">Severity 2</option>
-                <option value="3">Severity 3</option>
-                <option value="4">Severity 4</option>
-                <option value="5">Severity 5</option>
-            </select>
-
-            <input
-                id="edit-incident-latitude"
-                type="number"
-                step="any"
-                placeholder="Latitude"
-            />
-
-            <input
-                id="edit-incident-longitude"
-                type="number"
-                step="any"
-                placeholder="Longitude"
-            />
 
             <button onclick="submitIncidentUpdate()">
                 Save Changes
             </button>
 
         </section>
+
     </main>
-    <section class="intelligence-feed-panel" id="intelligence-feed-panel">
+
+    <section
+        class="intelligence-feed-panel"
+        id="intelligence-feed-panel"
+    >
+
         <h2>Operational Intelligence Feed</h2>
 
         <div id="intelligence-feed-list">
-            <div class="intel-feed-item intel-info">
+
+            <div class="intel-feed-item">
                 <span class="intel-time">SYSTEM</span>
-                <p>ECHELON intelligence feed initialized.</p>
+
+                <p>
+                    ECHELON intelligence feed initialized.
+                </p>
             </div>
+
         </div>
+
     </section>
 
-<script src = "https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="./script.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="./script.js"></script>
+
 </body>
 </html>

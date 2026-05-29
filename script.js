@@ -1,4 +1,4 @@
-const API_URL = "https://echelon-4ulx.onrender.com";
+const API_URL = "https://echelon-c6sf.onrender.com";
 // backend FastAPI server address
 
 let token = "";
@@ -33,6 +33,20 @@ let socket;
 
 let incidentMarkers = {};
 // stores incident markers by incident ID
+let refreshTimer = null;
+
+function scheduleRefresh() {
+    if (refreshTimer) {
+        clearTimeout(refreshTimer);
+    }
+
+    refreshTimer = setTimeout(() => {
+        loadIncidents();
+        loadInfrastructureAssets();
+        loadInfrastructureDependencies();
+        refreshTimer = null;
+    }, 500);
+}
 
 
 function initializeMap() {
@@ -80,7 +94,7 @@ async function registerUser() {
     const username = document.getElementById("username").value;
     // gets username input
 
-    const email = document.getElementById("email").value;
+    // const email = document.getElementById("email").value;
     // gets email input
 
     const password = document.getElementById("password").value;
@@ -95,7 +109,7 @@ async function registerUser() {
 
         body: JSON.stringify({
             username: username,
-            email: email,
+            // email: email,
             password: password,
             role: "operator"
         })
@@ -174,6 +188,7 @@ async function loginUser() {
 
     document.getElementById("auth-panel").style.display = "none";
     // hides auth panel
+    document.body.classList.add("authenticated");
 
     const dashboard = document.getElementById("main-dashboard");
     // gets dashboard container
@@ -186,6 +201,7 @@ async function loginUser() {
 
     initializeMap();
     // initializes map
+    connectWebSocket();
 
     loadInfrastructureAssets();
     // loads infrastructure markers
@@ -198,6 +214,7 @@ async function loginUser() {
 
     console.log("Logged in role:", currentUserRole);
     // debug role check
+    
 }
 function setButtonLoading(button, isLoading, loadingText, normalText) {
     if (!button) return;
@@ -294,10 +311,9 @@ async function createIncident() {
     // reads backend response
 
     if (response.ok) {
-        alert("Incident created successfully");
-        // success alert
 
-        loadIncidents();
+
+        scheduleRefresh();
         // reloads incidents
 
         addIntelligenceFeedItem(
@@ -443,29 +459,86 @@ async function getNearbyInfrastructureHtml(incidentId) {
     `;
     // returns full infrastructure block
 }
+async function showIncidentInfrastructure(incidentId) {
+    const block = document.getElementById(`infra-block-${incidentId}`);
+
+    if (!block) {
+        return;
+    }
+
+    block.innerHTML = `
+        <div class="loading-state">
+            <span class="mini-spinner"></span>
+            Loading affected infrastructure...
+        </div>
+    `;
+
+    const html = await getNearbyInfrastructureHtml(incidentId);
+
+    block.innerHTML = html;
+
+    loadInfrastructureAssets();
+    loadInfrastructureDependencies();
+}
 
 
 function drawInfrastructureRiskZone(incident, nearbyAssets) {
-    // draws incident risk radius
+    // draws operational impact radius
 
     riskOverlayLayer.clearLayers();
-    // clears previous overlay
+    // removes previous overlays
 
     const riskCircle = L.circle(
         [incident.latitude, incident.longitude],
         {
             radius: 1000,
-            color: "#ff0000",
-            fillColor: "#ff0000",
-            fillOpacity: 0.25,
-            opacity: 0.75,
-            weight: 2
+
+            color: "rgba(220, 220, 220, 0.85)",
+
+            fillColor: "rgba(120, 120, 120, 0.35)",
+
+            fillOpacity: 0.12,
+
+            opacity: 0.95,
+
+            weight: 2,
+
+            dashArray: "8 8"
         }
     );
-    // creates tactical red risk circle
+    // creates tactical operational radius
 
     riskCircle.addTo(riskOverlayLayer);
-    // adds risk circle to map
+    // adds radius to map
+
+    riskCircle.bringToFront();
+    // keeps radius visible above map
+
+    nearbyAssets.forEach(asset => {
+        // draws lines to directly affected assets
+
+        if (!asset.latitude || !asset.longitude) {
+            return;
+        }
+
+        const line = L.polyline(
+            [
+                [incident.latitude, incident.longitude],
+                [asset.latitude, asset.longitude]
+            ],
+            {
+                color: "rgba(220,220,220,0.45)",
+
+                weight: 1.2,
+
+                opacity: 0.7,
+
+                dashArray: "4 8"
+            }
+        );
+
+        line.addTo(riskOverlayLayer);
+    });
 }
 
 
@@ -625,7 +698,17 @@ async function loadIncidents() {
                 <pre>${incident.llm_summary || "No summary yet"}</pre>
             </div>
 
-            ${await getNearbyInfrastructureHtml(incident.id)}
+           <div
+                id="infra-block-${incident.id}"
+                class="infrastructure-risk-block"
+            >
+                <h4>Affected Infrastructure</h4>
+                <p>Click below to load direct and cascaded asset impact.</p>
+            </div>
+
+            <button onclick="showIncidentInfrastructure(${incident.id})">
+                Show affected infrastructure
+            </button>
 
             <div class="evidence-upload">
                 <label
@@ -789,7 +872,7 @@ async function uploadImageForIncident(incidentId) {
                 `Analyzing image for incident ${incidentId}`
             );
 
-            loadIncidents();
+            scheduleRefresh();
         }
 
         else {
@@ -916,13 +999,13 @@ async function submitIncidentUpdate() {
     const data = await response.json();
 
     if (response.ok) {
-        alert("Incident updated successfully");
+        addIntelligenceFeedItem(
+            "info",
+            "Incident updated successfully");
 
         closeIncidentEditDrawer();
 
-        loadIncidents();
-        loadInfrastructureAssets();
-        loadInfrastructureDependencies();
+        scheduleRefresh();
     }
 
     else {
@@ -1000,7 +1083,9 @@ async function updateInfrastructureAsset(asset) {
     // reads backend response
 
     if (response.ok) {
-        alert("Infrastructure asset updated successfully");
+        addIntelligenceFeedItem(
+            "info",
+            "Infrastructure asset updated successfully");
         loadInfrastructureAssets();
         loadInfrastructureDependencies();
     }
@@ -1136,7 +1221,7 @@ function formatImageAnalysis(imageAnalysis) {
 function connectWebSocket() {
     // connects frontend to backend websocket
 
-    socket = new WebSocket("wss://echelon-4ulx.onrender.com/ws");
+    socket = new WebSocket("ws://127.0.0.1:8000/ws");
     // creates websocket connection
 
     socket.onopen = () => {
@@ -1162,7 +1247,7 @@ function connectWebSocket() {
                 `New incident created: ID ${data.incident_id}`
             );
 
-            loadIncidents();
+            scheduleRefresh();
         }
 
         if (eventType === "incident_updated") {
@@ -1171,9 +1256,7 @@ function connectWebSocket() {
                 `Incident updated: ID ${data.incident_id}`
             );
 
-            loadIncidents();
-            loadInfrastructureAssets();
-            loadInfrastructureDependencies();
+            scheduleRefresh();
         }
 
         if (eventType === "incident_deleted") {
@@ -1182,7 +1265,7 @@ function connectWebSocket() {
                 `Incident deleted: ID ${data.incident_id}`
             );
 
-            loadIncidents();
+            scheduleRefresh();
         }
 
         if (eventType === "analysis_completed") {
@@ -1191,7 +1274,7 @@ function connectWebSocket() {
                 `Image intelligence analysis completed for incident ${data.incident_id}`
             );
 
-            loadIncidents();
+            scheduleRefresh();
         }
 
         if (eventType === "infrastructure_updated") {
@@ -1200,8 +1283,7 @@ function connectWebSocket() {
                 "Infrastructure dependency state updated"
             );
 
-            loadInfrastructureAssets();
-            loadInfrastructureDependencies();
+            scheduleRefresh();
         }
     };
 
@@ -1250,8 +1332,10 @@ async function deleteIncident(incidentId) {
     // reads backend response
 
     if (response.ok) {
-        alert("Incident deleted successfully");
-        loadIncidents();
+        addIntelligenceFeedItem(
+            "warning",
+            "Incident deleted successfully");
+        scheduleRefresh();;
     }
 
     else {
@@ -1467,11 +1551,6 @@ async function loadInfrastructureAssets() {
     infrastructureLayer.clearLayers();
     // clears old markers
 
-    addIntelligenceFeedItem(
-        "info",
-        "Loading infrastructure..."
-    );
-
     assets.forEach(asset => {
         // loops through assets
 
@@ -1650,6 +1729,9 @@ function addIntelligenceFeedItem(level, message) {
         return;
         // stops if feed does not exist
     }
+    if (!message) {
+        return;
+    }
 
     const now = new Date().toLocaleTimeString();
     // creates current timestamp
@@ -1699,27 +1781,11 @@ function dismissIntelFeedItem(button) {
 }
 
 
-connectWebSocket();
+//connectWebSocket();
 // starts websocket connection
 
-Latitude: 37.6545
-Longitude: -122.1188
 
+// starts websocket connection
 
-/* Title:
-Hayward Power Grid Failure
-
-Description:
-Smoke and electrical fault activity reported near Hayward Regional Power Substation.
-
-Category:
-infrastructure
-
-Severity:
-5
-
-Latitude:
-37.6368
-
-Longitude:
--122.0985 */
+//Latitude: 37.6545
+//Longitude: -122.1188
