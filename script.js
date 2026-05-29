@@ -1221,7 +1221,7 @@ function formatImageAnalysis(imageAnalysis) {
 function connectWebSocket() {
     // connects frontend to backend websocket
 
-    socket = new WebSocket("ws://127.0.0.1:8000/ws");
+    socket = new WebSocket("wss://echelon-c6sf.onrender.com/ws");
     // creates websocket connection
 
     socket.onopen = () => {
