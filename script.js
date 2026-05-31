@@ -1,38 +1,15 @@
 const API_URL = "https://echelon-c6sf.onrender.com";
-// backend FastAPI server address
-
 let token = "";
-// stores JWT token after login
-
 let currentUserRole = null;
-// stores authenticated user role after login
-
 const isAdmin = () => currentUserRole === "admin";
-// returns true only if logged-in user is admin
-
 const isOperator = () => currentUserRole === "operator";
-// returns true only if logged-in user is operator
-
 let map;
-// stores Leaflet map globally
-
 let markersLayer;
-// stores incident markers
-
 let infrastructureLayer;
-// stores infrastructure asset markers
-
 let riskOverlayLayer;
-// stores temporary risk circles
-
 let dependencyLayer;
-// stores infrastructure dependency lines
-
 let socket;
-// stores WebSocket connection
-
 let incidentMarkers = {};
-// stores incident markers by incident ID
 let refreshTimer = null;
 
 function scheduleRefresh() {
@@ -53,16 +30,12 @@ function initializeMap() {
     // creates Leaflet tactical map
 
     if (map) {
-        // prevents map from being initialized twice
-
         return;
-        // stops function if map already exists
     }
 
     map = L.map("map", {
         zoomControl: false
     }).setView([37.7749, -122.4149], 12);
-    // creates map centered on San Francisco
 
     L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -72,34 +45,17 @@ function initializeMap() {
             attribution: ""
         }
     ).addTo(map);
-    // adds dark tactical map tiles
 
     riskOverlayLayer = L.layerGroup().addTo(map);
-    // creates risk overlay layer
-
     dependencyLayer = L.layerGroup().addTo(map);
-    // creates infrastructure dependency line layer
-
     infrastructureLayer = L.layerGroup().addTo(map);
-    // creates infrastructure marker layer
-
     markersLayer = L.layerGroup().addTo(map);
-    // creates incident marker layer
 }
 
 
 async function registerUser() {
-    // registers new user
-
     const username = document.getElementById("username").value;
-    // gets username input
-
-    // const email = document.getElementById("email").value;
-    // gets email input
-
     const password = document.getElementById("password").value;
-    // gets password input
-
     const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
 
@@ -114,36 +70,21 @@ async function registerUser() {
             role: "operator"
         })
     });
-    // sends registration request; default role is operator
-
     const data = await response.json();
-    // reads backend response
-
     document.getElementById("auth-status").innerText =
         response.ok
             ? `Registered: ${data.username}`
             : `Register failed: ${JSON.stringify(data.detail)}`;
-    // updates auth status text
 }
 
 
 async function loginUser() {
-    // logs user in and loads dashboard
 
     const username = document.getElementById("username").value;
-    // gets username
-
     const password = document.getElementById("password").value;
-    // gets password
-
     const formData = new URLSearchParams();
-    // creates form data for OAuth2 login
-
     formData.append("username", username);
-    // OAuth2 expects field named username
-
     formData.append("password", password);
-    // OAuth2 expects field named password
 
     const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
@@ -154,66 +95,40 @@ async function loginUser() {
 
         body: formData.toString()
     });
-    // sends login request to backend
 
     const data = await response.json();
-    // reads login response
 
     if (!response.ok) {
-        // checks failed login
-
         document.getElementById("auth-status").innerText =
             `Login failed: ${JSON.stringify(data.detail)}`;
-        // shows login error
-
         return;
-        // stops function
     }
 
     token = data.access_token;
-    // stores JWT token globally
 
     currentUserRole = data.role;
-    // stores user role from backend
-
+ 
     updateRoleIndicator();
-    // updates role label in top bar
-
     applyRolePermissions();
-    // applies frontend permission display rules
 
     document.getElementById("auth-status").innerText =
         "Logged in successfully";
-    // shows login success
 
     document.getElementById("auth-panel").style.display = "none";
-    // hides auth panel
     document.body.classList.add("authenticated");
 
     const dashboard = document.getElementById("main-dashboard");
-    // gets dashboard container
-
     dashboard.classList.remove("hidden-dashboard");
-    // removes hidden state
-
     dashboard.classList.add("visible-dashboard");
-    // shows dashboard
 
     initializeMap();
-    // initializes map
     connectWebSocket();
 
     loadInfrastructureAssets();
-    // loads infrastructure markers
-
     loadInfrastructureDependencies();
-    // loads dependency graph lines
-
     loadIncidents();
-    // loads incidents/cards/markers
 
     console.log("Logged in role:", currentUserRole);
-    // debug role check
     
 }
 function setButtonLoading(button, isLoading, loadingText, normalText) {
@@ -226,67 +141,46 @@ function setButtonLoading(button, isLoading, loadingText, normalText) {
 }
 
 function updateRoleIndicator() {
-    // updates top-bar role display
 
     const roleIndicator = document.getElementById("role-indicator");
-    // gets role indicator element
 
     if (!roleIndicator) {
         return;
     }
-    // safely exits if element does not exist
 
     roleIndicator.innerText = `ROLE: ${currentUserRole.toUpperCase()}`;
-    // shows current role
 
     if (isAdmin()) {
         roleIndicator.style.color = "#ef4444";
-        // admin appears red
     }
 
     else if (isOperator()) {
         roleIndicator.style.color = "#00e5ff";
-        // operator appears cyan
     }
 }
 
 
 function applyRolePermissions() {
-    // applies simple two-role frontend permissions
-
     const createIncidentButton = document.querySelector(".drawer-toggle");
-    // gets create incident button
-
     if (!createIncidentButton) {
         return;
     }
-    // safely exits if button does not exist
-
     createIncidentButton.style.display = "block";
-    // both operator and admin can create incidents
 }
 
 
 async function createIncident() {
-    // creates a new incident
 
     const title = document.getElementById("incident-title").value;
-    // gets title
 
     const category = document.getElementById("incident-category").value;
-    // gets category
 
     const severity = Number(document.getElementById("incident-severity").value);
-    // gets severity as number
 
     const description = document.getElementById("incident-description").value;
-    // gets description
 
     const latitude = Number(document.getElementById("latitude").value);
-    // gets latitude
-
     const longitude = Number(document.getElementById("longitude").value);
-    // gets longitude
 
     const response = await fetch(`${API_URL}/incidents/`, {
         method: "POST",
@@ -305,56 +199,46 @@ async function createIncident() {
             longitude: longitude
         })
     });
-    // sends create request
 
     const data = await response.json();
-    // reads backend response
 
     if (response.ok) {
 
 
         scheduleRefresh();
-        // reloads incidents
 
         addIntelligenceFeedItem(
             "info",
             `Incident created: ${title}`
         );
-        // adds feed event
     }
 
     else {
         alert(`Failed to create incident: ${JSON.stringify(data.detail)}`);
-        // shows error
     }
 }
 
 
 function getSeverityColor(severity) {
-    // returns marker color based on severity
 
     if (severity >= 5) {
         return "#ff3b30";
     }
-    // critical red
 
     if (severity >= 4) {
         return "#ff9500";
     }
-    // high orange
 
     if (severity >= 3) {
         return "#ffd60a";
     }
-    // medium yellow
 
     return "#00e5ff";
-    // low cyan
+
 }
 
 
 async function getNearbyInfrastructureHtml(incidentId) {
-    // loads affected infrastructure for an incident
 
     const response = await fetch(
         `${API_URL}/incidents/${incidentId}/nearby-infrastructure`,
@@ -364,7 +248,6 @@ async function getNearbyInfrastructureHtml(incidentId) {
             }
         }
     );
-    // asks backend for nearby infrastructure
 
     if (!response.ok) {
         return `
@@ -374,26 +257,20 @@ async function getNearbyInfrastructureHtml(incidentId) {
             </div>
         `;
     }
-    // fallback if request fails
 
     const data = await response.json();
-    // reads backend infrastructure response
 
     const assets = data.nearby_assets || [];
-    // gets affected assets
 
     const recommendation =
         data.infrastructure_recommendation || "No recommendation available.";
-    // gets recommendation text
 
     const operationalRiskScore = data.operational_risk_score ?? "N/A";
-    // gets infrastructure risk score
 
     const criticalAssetCount = data.critical_asset_count ?? 0;
-    // gets critical asset count
 
     const cascadeAssetCount = data.cascade_asset_count ?? 0;
-    // gets cascade impact count
+
 
     if (assets.length === 0) {
         return `
@@ -408,7 +285,6 @@ async function getNearbyInfrastructureHtml(incidentId) {
             </div>
         `;
     }
-    // returns no-assets UI
 
     const assetRows = assets.map(asset => `
         <div class="asset-risk-row">
@@ -457,7 +333,7 @@ async function getNearbyInfrastructureHtml(incidentId) {
             </div>
         </div>
     `;
-    // returns full infrastructure block
+
 }
 async function showIncidentInfrastructure(incidentId) {
     const block = document.getElementById(`infra-block-${incidentId}`);
@@ -483,10 +359,8 @@ async function showIncidentInfrastructure(incidentId) {
 
 
 function drawInfrastructureRiskZone(incident, nearbyAssets) {
-    // draws operational impact radius
 
     riskOverlayLayer.clearLayers();
-    // removes previous overlays
 
     const riskCircle = L.circle(
         [incident.latitude, incident.longitude],
@@ -506,16 +380,12 @@ function drawInfrastructureRiskZone(incident, nearbyAssets) {
             dashArray: "8 8"
         }
     );
-    // creates tactical operational radius
 
     riskCircle.addTo(riskOverlayLayer);
-    // adds radius to map
 
     riskCircle.bringToFront();
-    // keeps radius visible above map
 
     nearbyAssets.forEach(asset => {
-        // draws lines to directly affected assets
 
         if (!asset.latitude || !asset.longitude) {
             return;
@@ -543,7 +413,6 @@ function drawInfrastructureRiskZone(incident, nearbyAssets) {
 
 
 async function loadIncidents() {
-    // loads incidents from backend
 
     const response = await fetch(`${API_URL}/incidents/`, {
         method: "GET",
@@ -552,10 +421,8 @@ async function loadIncidents() {
             "Authorization": `Bearer ${token}`
         }
     });
-    // sends authenticated request
 
     const data = await response.json();
-    // reads backend response
 
     if (!response.ok) {
         console.log("Failed to load incidents:", data);
@@ -565,22 +432,17 @@ async function loadIncidents() {
 
         return;
     }
-    // stops if request failed
 
     const incidents = Array.isArray(data) ? data : [];
-    // ensures incidents is an array
 
     document.getElementById("total-incidents").innerText =
         incidents.length;
-    // updates total count
 
     document.getElementById("high-severity-count").innerText =
         incidents.filter(incident => incident.severity >= 4).length;
-    // updates high severity count
 
     document.getElementById("open-incidents-count").innerText =
         incidents.filter(incident => incident.status === "open").length;
-    // updates open count
 
     document.getElementById("closed-incidents-count").innerText =
         incidents.filter(
@@ -588,20 +450,15 @@ async function loadIncidents() {
                 incident.status === "closed" ||
                 incident.status === "resolved"
         ).length;
-    // updates closed/resolved count
 
     const severityFilter = document.getElementById("severity-filter").value;
-    // gets severity filter
 
     const statusFilter = document.getElementById("status-filter").value;
-    // gets status filter
 
     const categoryFilter =
         document.getElementById("category-filter").value.toLowerCase();
-    // gets category filter
 
     const incidentList = document.getElementById("incident-list");
-    // gets incident list container
     incidentList.innerHTML = `
         <div class="loading-state">
             <span class="mini-spinner"></span>
@@ -611,26 +468,18 @@ async function loadIncidents() {
 
 
     incidentList.innerHTML = "";
-    // clears incident list
-
     markersLayer.clearLayers();
-    // clears incident markers
-
     incidentMarkers = {};
-    // resets marker storage
 
     for (const [index, incident] of incidents.entries()) {
-        // loops through incidents
 
         if (severityFilter && incident.severity != severityFilter) {
             continue;
         }
-        // skips nonmatching severity
 
         if (statusFilter && incident.status !== statusFilter) {
             continue;
         }
-        // skips nonmatching status
 
         if (
             categoryFilter &&
@@ -638,22 +487,14 @@ async function loadIncidents() {
         ) {
             continue;
         }
-        // skips nonmatching category
 
         const canEditIncidents = true;
-        // both operator and admin can edit incidents
-
         const canDeleteIncidents = isAdmin();
-        // only admins can delete incidents
-
         const card = document.createElement("div");
-        // creates incident card element
 
         card.className = "incident-card";
-        // assigns card class
 
         card.id = `incident-card-${incident.id}`;
-        // gives card unique ID
 
         card.innerHTML = `
             <h3>${incident.title}</h3>
@@ -754,16 +595,13 @@ async function loadIncidents() {
                 Focus on Map
             </button>
         `;
-        // fills card HTML
 
         incidentList.appendChild(card);
-        // adds card to list
 
         const incidentColor =
             incident.status === "resolved"
                 ? "#64748b"
                 : getSeverityColor(incident.severity);
-        // resolved incidents become gray
 
         const incidentIcon = L.divIcon({
             className: "incident-pulse-icon",
@@ -786,7 +624,6 @@ async function loadIncidents() {
             iconSize: [34, 34],
             iconAnchor: [17, 17]
         });
-        // creates custom incident icon
 
         const marker = L.marker(
             [incident.latitude, incident.longitude],
@@ -794,10 +631,8 @@ async function loadIncidents() {
                 icon: incidentIcon
             }
         ).addTo(markersLayer);
-        // creates incident marker
 
         incidentMarkers[incident.id] = marker;
-        // stores marker by incident ID
 
         marker.bindPopup(
             `
@@ -810,21 +645,19 @@ async function loadIncidents() {
                 autoPan: false
             }
         );
-        // attaches popup
+
 
         marker.on("click", () => {
             highlightIncidentCard(incident.id);
         });
-        // highlights card when marker clicked
+
     }
 }
 
 
 async function uploadImageForIncident(incidentId) {
-    // uploads image evidence for incident
 
     const uploadButton = document.getElementById(`upload-btn-${incidentId}`);
-    // gets upload button for this incident
 
     setButtonLoading(
         uploadButton,
@@ -835,22 +668,14 @@ async function uploadImageForIncident(incidentId) {
 
     try {
         const fileInput = document.getElementById(`image-input-${incidentId}`);
-        // gets file input
-
         const file = fileInput.files[0];
-        // gets selected file
-
         if (!file) {
             alert("Please choose an image first.");
             return;
         }
 
         const formData = new FormData();
-        // creates multipart form data
-
         formData.append("file", file);
-        // attaches file
-
         const response = await fetch(
             `${API_URL}/incidents/${incidentId}/upload-image`,
             {
@@ -892,8 +717,6 @@ async function uploadImageForIncident(incidentId) {
 
 
 function openIncidentEditDrawer(incident) {
-    // opens incident edit drawer
-
     document.getElementById("edit-incident-id").value = incident.id;
 
     document.getElementById("edit-incident-title").value =
@@ -931,8 +754,6 @@ function openIncidentEditDrawer(incident) {
 
 
 function closeIncidentEditDrawer() {
-    // closes incident edit drawer
-
     document
         .getElementById("incident-edit-drawer")
         .classList.remove("incident-edit-drawer-open");
@@ -946,8 +767,6 @@ function closeIncidentEditDrawer() {
 
 
 async function submitIncidentUpdate() {
-    // submits incident update
-
     const incidentId = document.getElementById("edit-incident-id").value;
 
     const title =
@@ -1015,7 +834,6 @@ async function submitIncidentUpdate() {
 
 
 async function updateInfrastructureAsset(asset) {
-    // updates infrastructure asset; admin-only from UI
 
     if (!isAdmin()) {
         addIntelligenceFeedItem(
@@ -1024,35 +842,27 @@ async function updateInfrastructureAsset(asset) {
         );
         return;
     }
-    // blocks non-admin users
 
     const name = prompt("New asset name:", asset.name) || asset.name;
-    // asks for name
 
     const assetType =
         prompt("New asset type:", asset.asset_type) || asset.asset_type;
-    // asks for type
 
     const latitude =
         prompt("New latitude:", asset.latitude) || asset.latitude;
-    // asks for latitude
 
     const longitude =
         prompt("New longitude:", asset.longitude) || asset.longitude;
-    // asks for longitude
 
     const criticality =
         prompt("New criticality:", asset.criticality) || asset.criticality;
-    // asks for criticality
 
     const description =
         prompt("New description:", asset.description) || asset.description;
-    // asks for description
 
     const operationalStatus =
         prompt("Operational status:", asset.operational_status) ||
         asset.operational_status;
-    // asks for status
 
     const response = await fetch(
         `${API_URL}/infrastructure/${asset.id}`,
@@ -1077,10 +887,8 @@ async function updateInfrastructureAsset(asset) {
             })
         }
     );
-    // sends update request
 
     const data = await response.json();
-    // reads backend response
 
     if (response.ok) {
         addIntelligenceFeedItem(
@@ -1097,15 +905,12 @@ async function updateInfrastructureAsset(asset) {
 
 
 function formatImageAnalysis(imageAnalysis) {
-    // formats CV analysis for card display
 
     if (!imageAnalysis) {
         return `<p><strong>Image Analysis:</strong> No analysis yet</p>`;
     }
-    // handles no analysis
 
     let analysis;
-    // creates variable for parsed analysis
 
     try {
         analysis = JSON.parse(imageAnalysis);
@@ -1114,38 +919,22 @@ function formatImageAnalysis(imageAnalysis) {
     catch {
         return `<p><strong>Image Analysis:</strong> Invalid analysis data</p>`;
     }
-    // safely parses JSON
 
     const blurryText = analysis.is_blurry ? "Yes" : "No";
-    // converts blur boolean to text
-
     const detectedObjects = analysis.detected_objects || [];
-    // gets YOLO objects
-
     const objectsText = detectedObjects.length > 0
         ? detectedObjects
             .map(obj => `${obj.label} (${Math.round(obj.confidence * 100)}%)`)
             .join(", ")
         : "No known objects detected";
-    // formats object list
-
+        
     const hazard = analysis.hazard_analysis || {};
-    // gets hazard analysis
-
     const fireSmoke = analysis.fire_smoke_analysis || {};
-    // gets fire/smoke analysis
-
     const structural = analysis.structural_analysis || {};
-    // gets structural analysis
-
     const fusion = analysis.intelligence_fusion || {};
-    // gets fusion analysis
-
     const scene = analysis.scene_analysis || {};
-    // gets scene analysis
-
     const traffic = analysis.traffic_activity || {};
-    // gets traffic analysis
+
 
     return `
         <div class="analysis-block">
@@ -1214,32 +1003,23 @@ function formatImageAnalysis(imageAnalysis) {
             <p><strong>Recommended Action:</strong> ${fusion.recommended_action || "N/A"}</p>
         </div>
     `;
-    // returns formatted analysis block
+
 }
 
 
 function connectWebSocket() {
-    // connects frontend to backend websocket
 
     socket = new WebSocket("wss://echelon-c6sf.onrender.com/ws");
-    // creates websocket connection
 
     socket.onopen = () => {
         console.log("WebSocket connected");
     };
-    // logs successful websocket connection
 
     socket.onmessage = (event) => {
-        // handles incoming websocket messages
 
         const data = JSON.parse(event.data);
-        // parses websocket JSON
-
         const eventType = data.event || data.event_type;
-        // supports both event and event_type formats
-
         console.log("WebSocket event received:", data);
-        // logs websocket message
 
         if (eventType === "incident_created") {
             addIntelligenceFeedItem(
@@ -1294,12 +1074,11 @@ function connectWebSocket() {
             connectWebSocket();
         }, 3000);
     };
-    // reconnects after disconnect
+
 }
 
 
 async function deleteIncident(incidentId) {
-    // deletes incident; admin-only from UI
 
     if (!isAdmin()) {
         addIntelligenceFeedItem(
@@ -1309,15 +1088,12 @@ async function deleteIncident(incidentId) {
 
         return;
     }
-    // blocks non-admin delete attempts
 
     const confirmed = confirm(`Delete incident ${incidentId}?`);
-    // asks for confirmation
 
     if (!confirmed) {
         return;
     }
-    // stops if user cancels
 
     const response = await fetch(`${API_URL}/incidents/${incidentId}`, {
         method: "DELETE",
@@ -1326,10 +1102,8 @@ async function deleteIncident(incidentId) {
             "Authorization": `Bearer ${token}`
         }
     });
-    // sends DELETE request
 
     const data = await response.json();
-    // reads backend response
 
     if (response.ok) {
         addIntelligenceFeedItem(
@@ -1345,43 +1119,25 @@ async function deleteIncident(incidentId) {
 
 
 function clearFilters() {
-    // resets incident filters
 
     document.getElementById("severity-filter").value = "";
-    // clears severity
-
     document.getElementById("status-filter").value = "";
-    // clears status
-
     document.getElementById("category-filter").value = "";
-    // clears category
-
     loadIncidents();
-    // reloads incidents
 }
 
 
 async function focusIncidentOnMap(incidentId) {
-    // focuses map on incident marker
-
     const marker = incidentMarkers[incidentId];
-    // gets marker by incident ID
 
     if (!marker) {
         alert("No marker found for this incident.");
         return;
     }
-    // stops if marker not found
 
     const markerPosition = marker.getLatLng();
-    // gets marker position
-
     map.setView(markerPosition, 15);
-    // zooms map to incident
-
     marker.openPopup();
-    // opens popup
-
     const response = await fetch(
         `${API_URL}/incidents/${incidentId}/nearby-infrastructure`,
         {
@@ -1390,13 +1146,9 @@ async function focusIncidentOnMap(incidentId) {
             }
         }
     );
-    // gets nearby infrastructure
 
     const data = await response.json();
-    // reads response
-
     const nearbyAssets = data.nearby_assets || [];
-    // gets nearby assets
 
     drawInfrastructureRiskZone(
         {
@@ -1405,13 +1157,10 @@ async function focusIncidentOnMap(incidentId) {
         },
         nearbyAssets
     );
-    // draws risk circle
 
     loadInfrastructureAssets();
-    // reloads infrastructure states
-
     loadInfrastructureDependencies();
-    // reloads dependency lines
+
 }
 
 
@@ -1488,16 +1237,10 @@ function toggleIncidentDrawer() {
 
 
 function toggleIncidentsDrawer() {
-    // opens/closes incident list drawer
 
     const drawer = document.getElementById("incidents-drawer");
-    // gets drawer
-
     const button = document.querySelector(".incidents-toggle");
-    // gets incidents button
-
     const isOpen = drawer.classList.contains("incidents-drawer-open");
-    // checks drawer state
 
     if (!isOpen) {
         button.classList.add("hide-drawer-button");
@@ -1521,7 +1264,6 @@ function toggleIncidentsDrawer() {
 
 
 function getAssetStatusClass(status) {
-    // converts infrastructure status into CSS class
 
     if (status === "AT_RISK") {
         return "asset-at-risk";
@@ -1540,29 +1282,16 @@ function getAssetStatusClass(status) {
 
 
 async function loadInfrastructureAssets() {
-    // loads infrastructure assets
 
     const response = await fetch(`${API_URL}/infrastructure/`);
-    // requests infrastructure assets
-
     const assets = await response.json();
-    // reads response
 
     infrastructureLayer.clearLayers();
-    // clears old markers
 
     assets.forEach(asset => {
-        // loops through assets
-
         const isCascadeRisk = asset.risk_status === "CASCADE_RISK";
-        // checks cascade risk
-
         const assetOpacity = isAdmin() ? 1 : 0.72;
-        // admin sees full marker strength
-
         const assetScale = isAdmin() ? 1.0 : 0.82;
-        // non-admin markers appear smaller
-
         const assetIcon = L.divIcon({
             className: "infrastructure-icon",
 
@@ -1583,7 +1312,6 @@ async function loadInfrastructureAssets() {
             iconSize: [14, 14],
             iconAnchor: [7, 10]
         });
-        // creates infrastructure icon
 
         const marker = L.marker(
             [asset.latitude, asset.longitude],
@@ -1591,7 +1319,6 @@ async function loadInfrastructureAssets() {
                 icon: assetIcon
             }
         ).addTo(infrastructureLayer);
-        // adds marker
 
         marker.bindPopup(
             `
@@ -1619,37 +1346,23 @@ async function loadInfrastructureAssets() {
                 autoPan: false
             }
         );
-        // attaches role-aware popup
     });
 }
 
 
 async function loadInfrastructureDependencies() {
-    // loads dependency graph
 
     const response = await fetch(`${API_URL}/infrastructure-dependencies/`);
-    // requests dependencies
-
     const data = await response.json();
-    // reads response
-
     const dependencies = data.dependencies || [];
-    // gets dependency list
 
     dependencyLayer.clearLayers();
-    // clears old lines
 
     dependencies.forEach(edge => {
-        // loops through dependency edges
-
         const source = edge.source;
-        // gets source asset
-
         const dependent = edge.dependent;
-        // gets dependent asset
 
         let lineColor = "#00e5ff";
-        // default dependency color
 
         if (
             source.risk_status === "CASCADE_RISK" ||
@@ -1657,7 +1370,6 @@ async function loadInfrastructureDependencies() {
         ) {
             lineColor = "#c084fc";
         }
-        // purple for cascade risk
 
         if (
             source.operational_status === "DEGRADED" ||
@@ -1665,7 +1377,6 @@ async function loadInfrastructureDependencies() {
         ) {
             lineColor = "#ff9500";
         }
-        // orange for degraded infrastructure
 
         if (
             source.operational_status === "OFFLINE" ||
@@ -1673,7 +1384,6 @@ async function loadInfrastructureDependencies() {
         ) {
             lineColor = "#ff3b30";
         }
-        // red for offline infrastructure
 
         const line = L.polyline(
             [
@@ -1690,7 +1400,6 @@ async function loadInfrastructureDependencies() {
                 className: "dependency-flow-line"
             }
         );
-        // creates animated dependency line
 
         line.bindPopup(
             `
@@ -1714,34 +1423,23 @@ async function loadInfrastructureDependencies() {
         );
 
         line.addTo(dependencyLayer);
-        // adds line to map
     });
 }
 
 
 function addIntelligenceFeedItem(level, message) {
-    // adds item to intelligence feed
-
     const feedList = document.getElementById("intelligence-feed-list");
-    // gets feed list container
 
     if (!feedList) {
         return;
-        // stops if feed does not exist
     }
     if (!message) {
         return;
     }
 
     const now = new Date().toLocaleTimeString();
-    // creates current timestamp
-
     const item = document.createElement("div");
-    // creates notification element
-
     item.className = `intel-feed-item intel-${level}`;
-    // applies notification severity styling
-
     item.innerHTML = `
         <button
             class="intel-dismiss"
@@ -1754,38 +1452,22 @@ function addIntelligenceFeedItem(level, message) {
 
         <p>${message}</p>
     `;
-    // adds close button, time, and message
-
     feedList.prepend(item);
-    // places newest notification at top
 }
 
 function dismissIntelFeedItem(button) {
-    // removes one notification with animation
 
     const item = button.closest(".intel-feed-item");
-    // finds parent notification item
 
     if (!item) {
         return;
-        // stops if item was not found
     }
 
     item.classList.add("intel-feed-removing");
-    // starts slide/fade-out animation
-
     setTimeout(() => {
         item.remove();
-        // removes notification after animation finishes
     }, 260);
 }
 
 
-//connectWebSocket();
-// starts websocket connection
 
-
-// starts websocket connection
-
-//Latitude: 37.6545
-//Longitude: -122.1188

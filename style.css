@@ -939,7 +939,6 @@ button:disabled {
     }
 }
 
-/* LOADING */
 
 .mini-spinner {
     width: 13px;
@@ -1071,26 +1070,19 @@ button:disabled {
 body.authenticated .system-status-panel {
     display: none;
 }
-/* =========================================
-   REMOVE CYAN OVERLAY AFTER LOGIN
-========================================= */
+
 
 body.authenticated::before,
 body.authenticated::after {
     display: none !important;
 }
 
-/* =========================================
-   HIDE SYSTEM STATUS AFTER LOGIN
-========================================= */
 
 body.authenticated .system-status-panel {
     display: none !important;
 }
 
-/* =========================================
-   MORE MINIMAL MAP LOOK
-========================================= */
+
 
 body.authenticated #map {
     filter:
@@ -1099,9 +1091,6 @@ body.authenticated #map {
         saturate(0.72);
 }
 
-/* =========================================
-   MINIMAL AUTH PANEL
-========================================= */
 
 #auth-panel {
     background: rgba(12, 12, 12, 0.97);
@@ -1144,35 +1133,32 @@ body.authenticated #map {
     border:
         1px solid rgba(255,255,255,0.14);
 }
-/* =========================================
-   MINIMAL GREY / ANDURIL-STYLE OVERRIDES
-   Safe: visual-only changes
-========================================= */
 
-/* Remove green/cyan login background effects */
+
+
 body::before,
 body::after {
     display: none !important;
 }
 
-/* Replace cyan top border with dark grey */
+
 .top-bar {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Remove green/cyan subtitle */
+
 .platform-subtitle-secondary {
     color: rgba(210, 210, 210, 0.42) !important;
 }
 
-/* Role badge: grey, not green */
+
 #role-indicator {
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
     color: rgba(230, 230, 230, 0.75) !important;
     background: rgba(16, 16, 16, 0.75) !important;
 }
 
-/* Auth panel: minimal dark grey */
+
 #auth-panel {
     background: rgba(14, 14, 14, 0.97) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -1180,7 +1166,7 @@ body::after {
     border-radius: 3px !important;
 }
 
-/* Inputs: grey, no glow */
+
 input,
 textarea,
 select {
@@ -1195,7 +1181,7 @@ select:focus {
     box-shadow: none !important;
 }
 
-/* Buttons: grey, no cyan */
+
 button,
 .drawer-toggle {
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -1209,7 +1195,7 @@ button:hover,
     background: rgba(36, 36, 36, 0.96) !important;
 }
 
-/* System panel grey */
+
 .system-status-panel {
     background: rgba(14, 14, 14, 0.94) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -1220,7 +1206,7 @@ button:hover,
     color: rgba(230, 230, 230, 0.85) !important;
 }
 
-/* Remove cyan glow from loading/feed */
+ 
 .loading-state {
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
     background: rgba(255, 255, 255, 0.03) !important;
@@ -1231,7 +1217,7 @@ button:hover,
     border-top: 2px solid rgba(230, 230, 230, 0.85) !important;
 }
 
-/* Remove top/bottom gaps from incident drawer */
+
 .incidents-drawer {
     top: 64px !important;
     height: calc(100vh - 64px) !important;
@@ -1253,7 +1239,7 @@ button:hover,
         24px 0 60px rgba(0,0,0,0.55) !important;
 }
 
-/* Make incident cards more tactical/minimal */
+
 .incident-card {
     border-radius: 8px !important;
 
@@ -1272,7 +1258,7 @@ button:hover,
         0 12px 32px rgba(0,0,0,0.35) !important;
 }
 
-/* Remove bright cyan card accents */
+
 .llm-brief,
 .infrastructure-recommendation {
     border-left: 3px solid rgba(180,180,180,0.35) !important;
@@ -1282,14 +1268,14 @@ button:hover,
     border-left: 3px solid rgba(190, 140, 70, 0.75) !important;
 }
 
-/* Upload box minimal tactical */
+
 .evidence-upload-label {
     border: 1px dashed rgba(255,255,255,0.12) !important;
     border-radius: 8px !important;
     background: rgba(255,255,255,0.015) !important;
 }
 
-/* Buttons inside drawer: flatter, serious */
+
 .incident-card button {
     border-radius: 6px !important;
     background: rgba(24,24,24,0.96) !important;
